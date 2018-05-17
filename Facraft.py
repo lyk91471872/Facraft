@@ -2,9 +2,10 @@ import pygame, random
 from sys import exit
 
 class Bullet(pygame.sprite.Sprite):
-	def __init__(self, type='a', dx=0):
+	def __init__(self, type='a', dmg=1, dx=0):
 		self.image = pygame.image.load(type+'.png').convert_alpha()
-		self.__dx = dx
+		self.dmg = dmg
+		self.dx = dx
 		self.existence = True
 		self.rect = self.image.get_rect()
 		self.rect.x = 0
@@ -18,19 +19,21 @@ class Bullet(pygame.sprite.Sprite):
 			self.rect.y = y-self.image.get_height()/2
 
 		else:
-			self.rect.x -= self.__dx
-			self.rect.y -= 15
+			self.rect.x -= self.dx
+			self.rect.y -= 20
 		if self.rect.y<-100 or self.rect.x<-100 or self.rect.x>1540:
 			self.existence = False
 
 class Enemy:
-	def __init__(self, type='byg', hp=1, dx=99999, x=-1):
+	def __init__(self, type='byg', hp=2, dx=99999, dy=3, x=-1, score=1):
 		self.image = pygame.image.load(type+'.png').convert_alpha()
 		self.hp = hp
+		self.score = score
 		if dx==99999:
-			self.__dx = (random.random() - 0.5) * 7
+			self.dx = (random.random() - 0.5) * 7
 		else:
-			self.__dx = dx
+			self.dx = dx
+		self.dy = dy
 		self.rect = self.image.get_rect()
 		if x==-1:
 			self.rect.x = random.random() * 1350
@@ -41,8 +44,24 @@ class Enemy:
 		self.mask = pygame.mask.from_surface(self.image)
 
 	def move(self):
-		self.rect.x -= self.__dx
-		self.rect.y += 7
+		self.rect.x += self.dx
+		self.rect.y += self.dy
+		if self.rect.y>1540 or self.rect.x<-100 or self.rect.x>1540:
+			self.existence = False
+
+class Enemy_targeting(Enemy):
+	def move(self):
+		x, y = pygame.mouse.get_pos()
+		dx = x - self.rect.x
+		if dx>4: dx = 4
+		if dx<-4: dx = -4
+		self.dx = dx
+		dy = y - self.rect.y
+		if dy>8: dy = 8
+		if dy<-8: dy = -8
+		self.dy = dy
+		self.rect.x += self.dx
+		self.rect.y += self.dy
 		if self.rect.y>1540 or self.rect.x<-100 or self.rect.x>1540:
 			self.existence = False
 
@@ -55,9 +74,11 @@ enemy_timer = 0
 bullets = []
 enemies = []
 game_over = False
+bullet_type = 'a'
+bullet_dmg = 1
+bullet_pattern = 1
 score = 0
 
-# initiate player
 fa = pygame.sprite.Sprite()
 fa.image = pygame.image.load('fa.png').convert_alpha()
 fa.rect = fa.image.get_rect()
@@ -72,8 +93,16 @@ while True:
 			exit()
 		elif game_over and event.type==pygame.MOUSEBUTTONUP:
 			game_over = False
+			score = 0
+			bullet_type = 'a'
+			bullet_dmg = 1
+			bullet_pattern = 1
 
 	screen.blit(background, (0,0))
+
+	score_font = pygame.font.Font('Arial.ttf', 32)
+	score_label = score_font.render('score: '+str(score), True, (255, 255, 255))
+	screen.blit(score_label, (20, 20))
 
 	if game_over:
 		game_over_label = pygame.image.load('game_over.png').convert_alpha()
@@ -87,17 +116,33 @@ while True:
 	fa.rect.y = y - 66
 	screen.blit(fa.image, (fa.rect.x, fa.rect.y))
 
+	# level up
+	if score==25:
+		bullet_pattern = 2
+	if score==85:
+		bullet_type = 'b'
+		bullet_dmg = 2
+
 	# shoot bullets
 	bullet_timer += 1
-	if bullet_timer==15:
+	if bullet_timer==8:
 		bullet_timer = 0
-		bullets.append(Bullet())
+		if bullet_pattern==1:
+			bullets.append(Bullet(type=bullet_type, dmg=bullet_dmg))
+		if bullet_pattern==2:
+			bullets.append(Bullet(type=bullet_type, dmg=bullet_dmg, dx=10))
+			bullets.append(Bullet(type=bullet_type, dmg=bullet_dmg, dx=0))
+			bullets.append(Bullet(type=bullet_type, dmg=bullet_dmg, dx=-10))
 
 	# spawn enemies
 	enemy_timer += 1
-	if enemy_timer==25:
+	if enemy_timer==20:
 		enemy_timer = 0
 		enemies.append(Enemy())
+		enemies.append(Enemy())
+		if score>=40:
+			enemies.append(Enemy(dy=10))
+			enemies.append(Enemy_targeting(score=2))
 
 	# update bullets' positions
 	i = len(bullets) - 1
@@ -130,13 +175,14 @@ while True:
 		j = len(bullets) - 1
 		while j>=0:
 			if pygame.sprite.collide_mask(enemies[i], bullets[j])!=None:
+				enemies[i].hp -= bullets[j].dmg
 				del bullets[j]
-				enemies[i].hp -= 1
-				if enemies[i].hp==0:
+				if enemies[i].hp<=0:
+					score += enemies[i].score
 					del enemies[i]
-					score += 1
 					break
 			j -= 1
 		i -= 1
 
 	pygame.display.update()
+
