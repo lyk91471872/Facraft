@@ -49,7 +49,7 @@ class Enemy:
 		if self.rect.y>1540 or self.rect.x<-100 or self.rect.x>1540:
 			self.existence = False
 
-class Enemy_targeting(Enemy):
+class Player_targeting_enemy(Enemy):
 	def move(self):
 		x, y = pygame.mouse.get_pos()
 		dx = x - self.rect.x
@@ -142,7 +142,7 @@ while True:
 		enemies.append(Enemy())
 		if score>=40:
 			enemies.append(Enemy(dy=10))
-			enemies.append(Enemy_targeting(score=2))
+			enemies.append(Player_targeting_enemy(score=2))
 
 	# update bullets' positions
 	i = len(bullets) - 1
