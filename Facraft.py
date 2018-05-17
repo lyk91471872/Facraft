@@ -74,6 +74,7 @@ enemy_timer = 0
 bullets = []
 enemies = []
 game_over = False
+paused = False
 bullet_type = 'a'
 bullet_dmg = 1
 bullet_pattern = 1
@@ -97,6 +98,17 @@ while True:
 			bullet_type = 'a'
 			bullet_dmg = 1
 			bullet_pattern = 1
+		elif not(game_over) and event.type==pygame.KEYDOWN and event.key==pygame.K_ESCAPE:
+			paused = not(paused)
+
+	# level up
+	if score==25:
+		bullet_pattern = 2
+	if score>=85 and score<90:
+		bullet_type = 'b'
+		bullet_dmg = 2
+
+	if paused: continue
 
 	screen.blit(background, (0,0))
 
@@ -116,13 +128,6 @@ while True:
 	fa.rect.y = y - 66
 	screen.blit(fa.image, (fa.rect.x, fa.rect.y))
 
-	# level up
-	if score==25:
-		bullet_pattern = 2
-	if score==85:
-		bullet_type = 'b'
-		bullet_dmg = 2
-
 	# shoot bullets
 	bullet_timer += 1
 	if bullet_timer==8:
@@ -138,10 +143,13 @@ while True:
 	enemy_timer += 1
 	if enemy_timer==20:
 		enemy_timer = 0
-		enemies.append(Enemy())
-		enemies.append(Enemy())
+		if score<40:
+			enemies.append(Enemy())
+			enemies.append(Enemy())
 		if score>=40:
+			enemies.append(Enemy())
 			enemies.append(Enemy(dy=10))
+			enemies.append(Player_targeting_enemy(score=2))
 			enemies.append(Player_targeting_enemy(score=2))
 
 	# update bullets' positions
