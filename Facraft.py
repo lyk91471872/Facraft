@@ -1,7 +1,8 @@
-import pygame, random, math
-from sys import exit
+import pygame, random, math, sys, sqlite3
 
-class Bullet(pygame.sprite.Sprite):
+
+# Classes
+class Bullet():
     def __init__(self, type='a', dmg=1, dx=0):
         self.image = pygame.image.load(type+'.png').convert_alpha()
         self.dmg = dmg
@@ -17,12 +18,9 @@ class Bullet(pygame.sprite.Sprite):
             x, y  = pygame.mouse.get_pos()
             self.rect.x = x-self.image.get_width()/2
             self.rect.y = y+40-self.image.get_height()/2
-
         else:
             self.rect.x -= self.dx
             self.rect.y -= 20
-        if self.rect.y<-100 or self.rect.x<-100 or self.rect.x>1540:
-            self.existence = False
 
 class Enemy:
     def __init__(self, type='byg', hp=2, dx=99999, dy=3, x=-1, y=-100, score=1):
@@ -46,8 +44,6 @@ class Enemy:
     def move(self):
         self.rect.x += self.dx
         self.rect.y += self.dy
-        if self.rect.y>1540 or self.rect.x<-100 or self.rect.x>1540:
-            self.existence = False
 
 class Player_targeting_enemy(Enemy):
     def move(self):
@@ -62,8 +58,6 @@ class Player_targeting_enemy(Enemy):
         self.dy = dy
         self.rect.x += self.dx
         self.rect.y += self.dy
-        if self.rect.y>1540 or self.rect.x<-100 or self.rect.x>1540:
-            self.existence = False
 
 class Player_targeting_bullet(Enemy):
     def move(self):
@@ -74,8 +68,6 @@ class Player_targeting_bullet(Enemy):
         self.dx = dx
         self.rect.x += self.dx
         self.rect.y += self.dy
-        if self.rect.y>1540 or self.rect.x<-100 or self.rect.x>1540:
-            self.existence = False
 
 class Boss(Enemy):
     def move(self):
@@ -94,59 +86,90 @@ class Boss(Enemy):
             self.rect.y = math.sin(2 * self.timer) * 100 + 170
             self.timer += 0.05
 
+
+# Preparation
+player = input('Enter player name: ')
+fps = int(input('Enter fps: '))
+
+# create a new pygame window
 pygame.init()
 screen = pygame.display.set_mode((1280, 800), 0, 0)
 pygame.display.set_caption('Facraft')
+
+# load images
 background = pygame.image.load('bg.png').convert()
+dlg_drinking_image = pygame.image.load('dlg_drinking.png').convert_alpha()
+dlg_image = pygame.image.load('dlg.png').convert_alpha()
+
+# initialize variables to manage states
 bullet_timer = 0
 enemy_timer = 0
 bullets = []
 enemies = []
 boss = False
-dlg_drinking_image = pygame.image.load('dlg_drinking.png').convert_alpha()
-dlg_image = pygame.image.load('dlg.png').convert_alpha()
 game_over = False
+victory = False
 paused = False
 ccps_counter = 0
 special_attack = False
-bullet_type = 'b'
-bullet_dmg = 2
-bullet_pattern = 2
-score = 90
-clock = pygame.time.Clock()
+bullet_type = 'a'
+bullet_dmg = 1
+bullet_pattern = 1
+score = 0
 
+# determine fps
+clock = pygame.time.Clock()
+#if len(sys.argv)==1:
+#    fps = 20
+#else:
+#    fps = int(sys.argv[1])
+
+# set player
 fa = pygame.sprite.Sprite()
 fa.image = pygame.image.load('fa.png').convert_alpha()
 fa.shoot_image = pygame.image.load('fa_shoot.png').convert_alpha()
 fa.rect = fa.image.get_rect()
 
+
 # main loop
 while True:
-    clock.tick(30)
+    clock.tick(fps)
 
     # determine whether to restart/quit
     for event in pygame.event.get():
         if event.type==pygame.QUIT:
             pygame.quit()
-            exit()
-        elif game_over and event.type==pygame.MOUSEBUTTONUP:
+            sys.exit()
+        elif (game_over or victory) and event.type==pygame.MOUSEBUTTONUP:
             game_over = False
+            victory = False
             enemies = []
             bullets = []
-            boss = False
+            ccps_counter = 0
+            special_attack = False
+            if boss:
+                del dlg
+                boss = False
             score = 0
             bullet_type = 'a'
             bullet_dmg = 1
             bullet_pattern = 1
-        elif not(game_over) and event.type==pygame.KEYDOWN and event.key==pygame.K_ESCAPE:
-            paused = not(paused)
+        elif not(game_over or victory) and event.type==pygame.KEYDOWN:
+            if event.key==pygame.K_ESCAPE:
+                paused = not(paused)
+            elif event.key==pygame.K_EQUALS:
+                bullet_type = 'b'
+                bullet_pattern = 2
+                bullet_dmg = 2
+                score = 90
 
     # level up
-    if score==20:
+    if score>=20 and score<25:
         bullet_pattern = 2
     if score>=85 and score<90:
         bullet_type = 'b'
         bullet_dmg = 2
+
     if paused: continue
 
     screen.blit(background, (0,0))
@@ -161,7 +184,24 @@ while True:
         screen.blit(game_over_label, (260, 307))
         pygame.display.update()
         continue
-    
+
+    if boss==True and dlg.hp<=0:
+        if not(victory):
+            conn = sqlite3.connect('records.db')
+            cursor = conn.cursor()
+            cursor.execute('create table if not exists records(player text, fps int, score int)')
+            cursor.execute('insert into records(player, fps, score) values(\'' + player + '\', ' + str(fps) + ', ' + str(score) +')')
+            conn.commit()
+            conn.close()
+            victory = True
+            bullets = []
+            enemies = []
+        victory_font = pygame.font.Font('Arial.ttf', 200)
+        victory_label = victory_font.render('Victory!', True, (0, 0, 0))
+        screen.blit(victory_label, (260, 307))
+        pygame.display.update()
+        continue
+
     # update player position
     x, y = pygame.mouse.get_pos()
     fa.rect.x = x - 50
@@ -217,7 +257,7 @@ while True:
     i = len(bullets) - 1
     while i>=0:
         bullets[i].move()
-        if bullets[i].existence==False:
+        if bullets[i].rect.y<-100 or bullets[i].rect.x<-100 or bullets[i].rect.x>1540:
             del bullets[i]
         else:
             screen.blit(bullets[i].image, (bullets[i].rect.x, bullets[i].rect.y))
@@ -231,9 +271,10 @@ while True:
                 ccps_counter = 0
                 dlg.image = dlg_drinking_image
                 special_attack = True
+                score += 10
                 dlg.hp -= 100
         enemies[i].move()
-        if enemies[i].existence==False:
+        if enemies[i].rect.y>900 or enemies[i].rect.x<-100 or enemies[i].rect.x>1540:
             del enemies[i]
         else:
             screen.blit(enemies[i].image, (enemies[i].rect.x, enemies[i].rect.y))
@@ -246,6 +287,12 @@ while True:
             game_over = True
             bullets = []
             enemies = []
+            conn = sqlite3.connect('records.db')
+            cursor = conn.cursor()
+            cursor.execute('create table if not exists records(player text, fps int, score int)')
+            cursor.execute('insert into records(player, fps, score) values(\'' + player + '\', ' + str(fps) + ', ' + str(score) +')')
+            conn.commit()
+            conn.close()
             break
         if type(enemies[i])==Player_targeting_bullet:
             i -= 1
