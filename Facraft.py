@@ -103,12 +103,17 @@ enemy_timer = 0
 bullets = []
 enemies = []
 boss = False
+dlg_drinking_image = pygame.image.load('dlg_drinking.png').convert_alpha()
+dlg_image = pygame.image.load('dlg.png').convert_alpha()
 game_over = False
 paused = False
+ccps_counter = 0
+special_attack = False
 bullet_type = 'b'
 bullet_dmg = 2
 bullet_pattern = 2
 score = 90
+clock = pygame.time.Clock()
 
 fa = pygame.sprite.Sprite()
 fa.image = pygame.image.load('fa.png').convert_alpha()
@@ -117,6 +122,7 @@ fa.rect = fa.image.get_rect()
 
 # main loop
 while True:
+    clock.tick(30)
 
     # determine whether to restart/quit
     for event in pygame.event.get():
@@ -125,6 +131,8 @@ while True:
             exit()
         elif game_over and event.type==pygame.MOUSEBUTTONUP:
             game_over = False
+            enemies = []
+            bullets = []
             boss = False
             score = 0
             bullet_type = 'a'
@@ -134,7 +142,7 @@ while True:
             paused = not(paused)
 
     # level up
-    if score==25:
+    if score==20:
         bullet_pattern = 2
     if score>=85 and score<90:
         bullet_type = 'b'
@@ -143,6 +151,7 @@ while True:
 
     screen.blit(background, (0,0))
 
+    # show score
     score_font = pygame.font.Font('Arial.ttf', 32)
     score_label = score_font.render('score: '+str(score), True, (255, 255, 255))
     screen.blit(score_label, (20, 20))
@@ -175,7 +184,7 @@ while True:
 
     # summon boss
     if score>=100 and score<200:
-        if boss==False:
+        if boss==False and enemies==[]:
             boss = True
             dlg = Boss(type='dlg', hp=1000, dx=0, dy=0, x=600, score=100)
             dlg.timer = -15
@@ -186,16 +195,23 @@ while True:
     enemy_timer += 1
     if enemy_timer==20:
         enemy_timer = 0
-        if score<40:
+        if score<35:
             enemies.append(Enemy())
             enemies.append(Enemy())
-        if score>=40 and score<100:
+        if score>=35 and score<100:
             enemies.append(Enemy())
             enemies.append(Enemy(dy=10))
             enemies.append(Player_targeting_enemy(score=2))
             enemies.append(Player_targeting_enemy(score=2))
-        if score>=100 and score<200:
-            enemies.append(Player_targeting_bullet(type='knife', hp=1, dx=0, dy=15, x=dlg.rect.x, y=dlg.rect.y, score=0))
+        if score>=100 and score<200 and type(enemies[0])==Boss:
+            if special_attack==False:
+                enemies.append(Player_targeting_bullet(type='knife', hp=1, dx=0, dy=15, x=dlg.rect.x, y=dlg.rect.y, score=0))
+            else:
+                special_attack = False
+                dlg.image = dlg_image
+                enemies.append(Player_targeting_bullet(type='knife', hp=1, dx=0, dy=5, x=dlg.rect.x, y=dlg.rect.y, score=0))
+                enemies.append(Player_targeting_bullet(type='knife', hp=1, dx=0, dy=10, x=dlg.rect.x, y=dlg.rect.y, score=0))
+                enemies.append(Player_targeting_bullet(type='knife', hp=1, dx=0, dy=15, x=dlg.rect.x, y=dlg.rect.y, score=0))
 
     # update bullets' positions
     i = len(bullets) - 1
@@ -210,6 +226,12 @@ while True:
     # update enemies' positions
     i = len(enemies) - 1
     while i>=0:
+        if type(enemies[i])==Boss:
+            if ccps_counter==20:
+                ccps_counter = 0
+                dlg.image = dlg_drinking_image
+                special_attack = True
+                dlg.hp -= 100
         enemies[i].move()
         if enemies[i].existence==False:
             del enemies[i]
@@ -232,6 +254,8 @@ while True:
         while j>=0:
             if pygame.sprite.collide_mask(enemies[i], bullets[j])!=None:
                 enemies[i].hp -= bullets[j].dmg
+                if type(enemies[i])==Boss:
+                    ccps_counter += bullets[j].dmg
                 del bullets[j]
                 if enemies[i].hp<=0:
                     score += enemies[i].score
