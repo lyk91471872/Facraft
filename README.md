@@ -9,7 +9,7 @@ Use python3 in terminal to open.
 
 ![Screenshot](https://github.com/lyk91471872/Facraft/blob/master/Screenshots/Facraft_terminal.png)
 
-~~Use your money to ~~Defeat enemies and boss!
+(Use your money to) Defeat enemies and boss!
 
 ![Screenshot](https://github.com/lyk91471872/Facraft/blob/master/Screenshots/Facraft_boss.png)
 
