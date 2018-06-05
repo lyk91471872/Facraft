@@ -154,14 +154,14 @@ while True:
             bullet_type = 'a'
             bullet_dmg = 1
             bullet_pattern = 1
-        elif not(game_over or victory) and event.type==pygame.KEYDOWN:
-            if event.key==pygame.K_ESCAPE:
-                paused = not(paused)
-            elif event.key==pygame.K_EQUALS:
-                bullet_type = 'b'
-                bullet_pattern = 2
-                bullet_dmg = 2
-                score = 90
+        #elif not(game_over or victory) and event.type==pygame.KEYDOWN:
+            #if event.key==pygame.K_ESCAPE:
+                #paused = not(paused)
+            #elif event.key==pygame.K_EQUALS:
+                #bullet_type = 'b'
+                #bullet_pattern = 2
+                #bullet_dmg = 2
+                #score = 90
 
     # level up
     if score>=20 and score<25:
