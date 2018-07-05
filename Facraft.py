@@ -23,11 +23,11 @@ class Bullet():
             self.rect.y -= 20
 
 class Enemy:
-    def __init__(self, type='byg', hp=2, dx=99999, dy=3, x=-1, y=-100, score=1):
+    def __init__(self, type='byg', hp=2, dx='rd', dy=3, x=-1, y=-100, score=1):
         self.image = pygame.image.load(type+'.png').convert_alpha()
         self.hp = hp
         self.score = score
-        if dx==99999:
+        if dx=='rd':
             self.dx = (random.random() - 0.5) * 7
         else:
             self.dx = dx
@@ -89,7 +89,13 @@ class Boss(Enemy):
 
 # Preparation
 player = input('Enter player name: ')
-fps = int(input('Enter fps: '))
+if player=='':
+    player = 'Anonym'
+fps = input('Enter fps: ')
+if fps=='':
+    fps = 30
+else:
+    fps = int(fps)
 
 # create a new pygame window
 pygame.init()
@@ -119,10 +125,6 @@ score = 0
 
 # determine fps
 clock = pygame.time.Clock()
-#if len(sys.argv)==1:
-#    fps = 20
-#else:
-#    fps = int(sys.argv[1])
 
 # set player
 fa = pygame.sprite.Sprite()
@@ -154,14 +156,14 @@ while True:
             bullet_type = 'a'
             bullet_dmg = 1
             bullet_pattern = 1
-        #elif not(game_over or victory) and event.type==pygame.KEYDOWN:
-            #if event.key==pygame.K_ESCAPE:
-                #paused = not(paused)
-            #elif event.key==pygame.K_EQUALS:
-                #bullet_type = 'b'
-                #bullet_pattern = 2
-                #bullet_dmg = 2
-                #score = 90
+        elif not(game_over or victory) and event.type==pygame.KEYDOWN:
+            if event.key==pygame.K_ESCAPE:
+                paused = not(paused)
+            elif event.key==pygame.K_EQUALS:
+                bullet_type = 'b'
+                bullet_pattern = 2
+                bullet_dmg = 2
+                score = 90
 
     # level up
     if score>=20 and score<25:
